@@ -1,0 +1,28 @@
+{
+  "name": "babilon-strategija",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babylonjs/core": "^8.32.1",
+    "@babylonjs/loaders": "^8.33.4",
+    "@babylonjs/materials": "^8.32.2",
+    "@babylonjs/procedural-textures": "^8.32.1",
+    "@babylonjs/serializers": "^8.33.4",
+    "babylonjs": "^8.32.1",
+    "babylonjs-loaders": "^8.32.1",
+    "jimp": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jimp": "^0.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.11"
+  }
+}
