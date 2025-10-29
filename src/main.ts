@@ -528,6 +528,9 @@ function updateCamera() {
 // start loop
 updateCamera();
 */
+
+let isPinching = false;
+
 camera.inputs.addMouseWheel();
 
 
@@ -540,10 +543,11 @@ window.addEventListener("wheel", (event: WheelEvent) => {
 
 // --- TOUCH PINCH ZOOM (for phones / tablets) ---
 let previousPinchDistance: number | null = null;
-const pinchZoomSpeed = 0.05; // adjust sensitivity
+const pinchZoomSpeed = 0.05;
 
 window.addEventListener("touchstart", (e) => {
   if (e.touches.length === 2) {
+    isPinching = true; // disable camera dragging
     const dx = e.touches[0].clientX - e.touches[1].clientX;
     const dy = e.touches[0].clientY - e.touches[1].clientY;
     previousPinchDistance = Math.sqrt(dx * dx + dy * dy);
@@ -559,18 +563,20 @@ window.addEventListener("touchmove", (e) => {
     const delta = newDistance - previousPinchDistance;
     previousPinchDistance = newDistance;
 
-    // Zoom camera (same style as your mousewheel logic)
     camera.position.y -= delta * pinchZoomSpeed;
     camera.position.z += delta * pinchZoomSpeed;
 
-    // Clamp or update terrain if needed
     updateChunks();
   }
 });
 
 window.addEventListener("touchend", (e) => {
-  if (e.touches.length < 2) previousPinchDistance = null;
+  if (e.touches.length < 2) {
+    isPinching = false; // re-enable camera dragging
+    previousPinchDistance = null;
+  }
 });
+
 
 
 // Enable pointer picking
@@ -665,7 +671,7 @@ scene.onPointerObservable.add((pointerInfo) => {
     }
 
     case BABYLON.PointerEventTypes.POINTERMOVE: {
-      if (!isDragging) return;
+      if (!isDragging || isPinching) return;
 
       const dx = evt.clientX - lastX;
       const dy = evt.clientY - lastY;
