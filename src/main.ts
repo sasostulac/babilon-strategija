@@ -490,25 +490,49 @@ engine.runRenderLoop(() => {
     }
 });
 
-// Ensure Babylon engine resizes correctly after device rotation or viewport change
-function handleResize() {
-  // Resize Babylon canvas immediately
-  engine.resize();
+// Detect if running on a touch/mobile device
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Then wait a bit to let mobile browsers finalize the layout
-  setTimeout(() => {
+let baseCameraY = camera.position.y;
+let baseCameraZ = camera.position.z;
+
+function adjustCameraForOrientation() {
+  if (!isMobile) return; // <-- skip on PC
+
+  const isLandscape = window.innerWidth > window.innerHeight;
+
+  // Adjust scale so terrain looks same size on mobile
+  const zoomFactor = isLandscape ? 0.5 : 1.0;
+
+  camera.position.y = baseCameraY * zoomFactor;
+  camera.position.z = baseCameraZ * zoomFactor;
+
+  updateChunks(); // optional
+}
+
+// Run once
+if (isMobile) adjustCameraForOrientation();
+
+// Handle orientation or resize changes
+if (isMobile) {
+  window.addEventListener("resize", () => {
     engine.resize();
+    adjustCameraForOrientation();
+  });
 
-    // Ensure camera keeps same vertical FOV (consistent zoom)
-    camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
-  }, 250);
+  if (window.screen.orientation) {
+    window.screen.orientation.addEventListener("change", () => {
+      setTimeout(() => {
+        engine.resize();
+        adjustCameraForOrientation();
+      }, 200);
+    });
+  }
+} else {
+  // Desktop behaves normally
+  window.addEventListener("resize", () => engine.resize());
 }
 
-// Run when window size or screen orientation changes
-window.addEventListener("resize", handleResize);
-if (window.screen.orientation) {
-  window.screen.orientation.addEventListener("change", handleResize);
-}
 
 let mouseX = 0;
 let mouseY = 0;
