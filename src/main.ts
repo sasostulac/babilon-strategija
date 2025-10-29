@@ -490,25 +490,25 @@ engine.runRenderLoop(() => {
     }
 });
 
-window.addEventListener("resize", () => engine.resize());
+// Ensure Babylon engine resizes correctly after device rotation or viewport change
+function handleResize() {
+  // Resize Babylon canvas immediately
+  engine.resize();
 
-// --- Fix camera "zoom jump" when rotating phone ---
-let lastOrientation = window.orientation || 0;
-
-window.addEventListener("orientationchange", () => {
-  // Let the browser finish resizing the canvas before Babylon updates
+  // Then wait a bit to let mobile browsers finalize the layout
   setTimeout(() => {
     engine.resize();
 
-    // After rotation, restore camera projection consistency
+    // Ensure camera keeps same vertical FOV (consistent zoom)
     camera.fovMode = BABYLON.Camera.FOVMODE_VERTICAL_FIXED;
+  }, 250);
+}
 
-    // Optional: reset fov if it drifted
-    camera.fov = 0.8; // your preferred default (in radians)
-  }, 300); // 300ms gives mobile browsers time to stabilize dimensions
-
-  lastOrientation = window.orientation || 0;
-});
+// Run when window size or screen orientation changes
+window.addEventListener("resize", handleResize);
+if (window.screen.orientation) {
+  window.screen.orientation.addEventListener("change", handleResize);
+}
 
 let mouseX = 0;
 let mouseY = 0;
