@@ -186,8 +186,8 @@ shaderMat.setFloat("riverLevel", 0.0);   // your water/river plane
 shaderMat.setTexture("shadowMap", shadowGenerator.getShadowMap()!);
 
 // ===== Camera Setup =====
-const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 40, 0), scene);
-camera.setTarget(new BABYLON.Vector3(0, 0, 30)); // fixed tilt
+const camera = new BABYLON.FreeCamera("camera", new BABYLON.Vector3(0, 30, 0), scene);
+camera.setTarget(new BABYLON.Vector3(0, 0, 23)); // fixed tilt
 camera.minZ = 0.1;
 camera.speed = 1;
 
