@@ -161,11 +161,9 @@ const textures: BABYLON.Texture[] = [
 */
 
 const textures: BABYLON.Texture[] = [
-  //new BABYLON.Texture("/c1.png", scene),
   new BABYLON.Texture("/grass1.jpg", scene),
-  new BABYLON.Texture("/d1.png", scene),
-  //new BABYLON.Texture("/sand2.jpg", scene),
-  new BABYLON.Texture("/1.png", scene),
+  new BABYLON.Texture("/grass2.png", scene),
+  new BABYLON.Texture("/grass3.png", scene),
   new BABYLON.Texture("/sand1.jpg", scene),
   new BABYLON.Texture("/crna.jpg", scene),
 ];
@@ -418,6 +416,64 @@ let speed = moveSpeed * scene.getEngine().getDeltaTime() / 16.666; // frame-rate
 
     updateChunks();
 });
+/*
+let isDragging = false;
+let lastPointerX = 0;
+let lastPointerY = 0;
+const dragSpeed = 0.02; // adjust sensitivity
+
+scene.onPointerDown = (evt) => {
+            console.log("dol1");
+    if (evt.button === 0) { // left mouse button
+        isDragging = true;
+        console.log("dol");
+        lastPointerX = evt.clientX;
+        lastPointerY = evt.clientY;
+        scene.getEngine().getRenderingCanvas()?.setPointerCapture(evt.pointerId);
+    }
+};
+
+scene.onPointerUp = (evt) => {
+    if (evt.button === 0) {
+        console.log("gor");
+        isDragging = false;
+        scene.getEngine().getRenderingCanvas()?.releasePointerCapture(evt.pointerId);
+    }
+};
+
+scene.onPointerMove = (evt) => {
+    if (!isDragging) return;
+
+    const dx = evt.clientX - lastPointerX;
+    const dy = evt.clientY - lastPointerY;
+
+    lastPointerX = evt.clientX;
+    lastPointerY = evt.clientY;
+
+    // Move camera opposite to drag (like map panning)
+    const moveX = -dx * dragSpeed;
+    const moveZ = dy * dragSpeed;
+
+    // Use camera orientation to translate drag into world space
+    const forward = new BABYLON.Vector3(
+        Math.sin(camera.rotation.y),
+        0,
+        Math.cos(camera.rotation.y)
+    );
+    const right = new BABYLON.Vector3(
+        Math.cos(camera.rotation.y),
+        0,
+        -Math.sin(camera.rotation.y)
+    );
+
+    camera.position.addInPlace(right.scale(moveX));
+    camera.position.addInPlace(forward.scale(moveZ));
+
+    updateChunks();
+};
+
+*/
+
 
 engine.runRenderLoop(() => {
     scene.render();
@@ -500,7 +556,7 @@ function showTileInfo(x: number, z: number, point: BABYLON.Vector3) {
 }
 
 // === Tile click detection ===
-
+/*
 scene.onPointerDown = function (evt, pickResult) {
     if (pickResult.hit && pickResult.pickedMesh) {
         const mesh = pickResult.pickedMesh as BABYLON.Mesh;
@@ -543,6 +599,113 @@ scene.onPointerDown = function (evt, pickResult) {
         }
     }
 };
+*/
+
+let isDragging = false;
+let dragStarted = false;
+let lastX = 0;
+let lastY = 0;
+let totalDragDistance = 0;
+const dragSpeed = 0.02;
+const dragThreshold = 5; // pixels – anything less counts as a click
+
+scene.onPointerObservable.add((pointerInfo) => {
+  const evt = pointerInfo.event as PointerEvent;
+
+  switch (pointerInfo.type) {
+    case BABYLON.PointerEventTypes.POINTERDOWN: {
+      if (evt.button !== 0) return; // left mouse only
+
+      isDragging = true;
+      dragStarted = false;
+      totalDragDistance = 0;
+      lastX = evt.clientX;
+      lastY = evt.clientY;
+      scene.getEngine().getRenderingCanvas()?.setPointerCapture(evt.pointerId);
+      break;
+    }
+
+    case BABYLON.PointerEventTypes.POINTERMOVE: {
+      if (!isDragging) return;
+
+      const dx = evt.clientX - lastX;
+      const dy = evt.clientY - lastY;
+      lastX = evt.clientX;
+      lastY = evt.clientY;
+
+      totalDragDistance += Math.abs(dx) + Math.abs(dy);
+
+      // Start camera pan only after threshold exceeded
+      if (totalDragDistance > dragThreshold) dragStarted = true;
+      if (!dragStarted) return;
+
+      const forward = new BABYLON.Vector3(
+        Math.sin(camera.rotation.y),
+        0,
+        Math.cos(camera.rotation.y)
+      );
+      const right = new BABYLON.Vector3(
+        Math.cos(camera.rotation.y),
+        0,
+        -Math.sin(camera.rotation.y)
+      );
+
+      const moveX = -dx * dragSpeed;
+      const moveZ = dy * dragSpeed;
+
+      camera.position.addInPlace(right.scale(moveX));
+      camera.position.addInPlace(forward.scale(moveZ));
+
+      updateChunks();
+      break;
+    }
+
+    case BABYLON.PointerEventTypes.POINTERUP: {
+      if (evt.button !== 0) return;
+      scene.getEngine().getRenderingCanvas()?.releasePointerCapture(evt.pointerId);
+
+      // If drag never started → treat as click
+      if (!dragStarted) {
+        const pickResult = scene.pick(evt.clientX, evt.clientY);
+        if (pickResult?.hit && pickResult.pickedMesh) {
+          const mesh = pickResult.pickedMesh as BABYLON.Mesh;
+          const localX = pickResult.pickedPoint!.x - mesh.position.x + SUBDIVISIONS / 2;
+          const localZ = pickResult.pickedPoint!.z - mesh.position.z + SUBDIVISIONS / 2;
+          const squareSize = 1;
+          const gridX = Math.floor(localX / squareSize);
+          const gridZ = Math.floor(localZ / squareSize);
+
+          const globalX = Math.floor(mesh.position.x) + gridX;
+          const globalZ = Math.floor(mesh.position.z) + gridZ;
+          const height = getSquareHeight(mesh, gridX, gridZ, SUBDIVISIONS);
+
+          const infoBox = document.getElementById("tileInfo");
+          if (infoBox) {
+            infoBox.style.display = "block";
+            infoBox.innerText = `Tile coordinates:\nX: ${globalX}\nZ: ${globalZ}\nHeight: ${height.toFixed(2)}`;
+          }
+
+          revealArea(globalX, globalZ, 10);
+          const cx = Math.floor(globalX / SUBDIVISIONS);
+          const cz = Math.floor(globalZ / SUBDIVISIONS);
+          for (let row = cx - 1; row <= cx + 1; row++) {
+            for (let col = cz - 1; col <= cz + 1; col++) {
+              updateChunkWeights(row, col);
+            }
+          }
+        }
+      }
+
+      isDragging = false;
+      dragStarted = false;
+      totalDragDistance = 0;
+      break;
+    }
+  }
+});
+
+
+
 
 function updateChunkWeights(cx: number, cz: number) {
     const key = getChunkKey(cx, cz);
