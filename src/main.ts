@@ -571,11 +571,20 @@ window.addEventListener("touchmove", (e) => {
 });
 
 window.addEventListener("touchend", (e) => {
-  if (e.touches.length < 2) {
-    isPinching = false; // re-enable camera dragging
-    previousPinchDistance = null;
+  // If there are still 2 or more fingers, it's still a pinch
+  if (e.touches.length >= 2) return;
+
+  // If there was a pinch gesture previously, suppress click on final release
+  if (isPinching) {
+    isPinching = false;
+
+    // prevent click from firing on this final pointerup
+    dragStarted = true;  // pretend we were dragging
   }
+
+  previousPinchDistance = null;
 });
+
 
 
 
