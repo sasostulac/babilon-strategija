@@ -195,7 +195,7 @@ camera.speed = 1;
 camera.inputs.clear();
 
 // Zoom with mouse wheel
-camera.inputs.addMouseWheel();
+
 /*
 const box = BABYLON.MeshBuilder.CreateBox("box", {}, scene);
 box.position.y = 5; 
@@ -528,11 +528,50 @@ function updateCamera() {
 // start loop
 updateCamera();
 */
+camera.inputs.addMouseWheel();
+
+
 window.addEventListener("wheel", (event: WheelEvent) => {
     const zoomSpeed = 2;
     camera.position.y += event.deltaY * 0.01 * zoomSpeed;
     camera.position.z -= event.deltaY * 0.01 * zoomSpeed;
 });
+
+
+// --- TOUCH PINCH ZOOM (for phones / tablets) ---
+let previousPinchDistance: number | null = null;
+const pinchZoomSpeed = 0.05; // adjust sensitivity
+
+window.addEventListener("touchstart", (e) => {
+  if (e.touches.length === 2) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    previousPinchDistance = Math.sqrt(dx * dx + dy * dy);
+  }
+});
+
+window.addEventListener("touchmove", (e) => {
+  if (e.touches.length === 2 && previousPinchDistance !== null) {
+    const dx = e.touches[0].clientX - e.touches[1].clientX;
+    const dy = e.touches[0].clientY - e.touches[1].clientY;
+    const newDistance = Math.sqrt(dx * dx + dy * dy);
+
+    const delta = newDistance - previousPinchDistance;
+    previousPinchDistance = newDistance;
+
+    // Zoom camera (same style as your mousewheel logic)
+    camera.position.y -= delta * pinchZoomSpeed;
+    camera.position.z += delta * pinchZoomSpeed;
+
+    // Clamp or update terrain if needed
+    updateChunks();
+  }
+});
+
+window.addEventListener("touchend", (e) => {
+  if (e.touches.length < 2) previousPinchDistance = null;
+});
+
 
 // Enable pointer picking
 scene.onPointerObservable.add((pointerInfo) => {
