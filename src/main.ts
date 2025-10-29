@@ -710,7 +710,7 @@ scene.onPointerObservable.add((pointerInfo) => {
       scene.getEngine().getRenderingCanvas()?.releasePointerCapture(evt.pointerId);
 
       // If drag never started → treat as click
-      if (!dragStarted) {
+      if (!dragStarted && !isPinching) {
         const pickResult = scene.pick(evt.clientX, evt.clientY);
         if (pickResult?.hit && pickResult.pickedMesh) {
           const mesh = pickResult.pickedMesh as BABYLON.Mesh;
