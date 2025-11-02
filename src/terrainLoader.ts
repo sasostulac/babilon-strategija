@@ -22,7 +22,7 @@ export async function loadHeightData(url: string): Promise<void> {
         for (let x = 0; x < img.width; x++) {
             const i = (y * img.width + x) * 4;
             const r = data[i]; // grayscale, so R=G=B
-            row.push((r + 10) / 255); // normalized 0..1
+            row.push((r) / 255); // normalized 0..1
         }
         heightData.push(row);
     }

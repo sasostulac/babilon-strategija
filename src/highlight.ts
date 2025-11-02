@@ -1,5 +1,6 @@
 // src/highlight.ts
 import * as BABYLON from "@babylonjs/core";
+import { updatePlacementFromHighlight } from "./placementManager";
 
 let highlightMesh: BABYLON.LinesMesh | null = null;
 
@@ -19,6 +20,8 @@ export function setupHighlighting(
             const gridZ = Math.floor(localZ / squareSize);
 
             highlightSquare(mesh, gridX, gridZ, scene, SUBDIVISIONS);
+
+            updatePlacementFromHighlight(mesh, gridX, gridZ, SUBDIVISIONS);
         }
     });
 }
@@ -57,6 +60,7 @@ function highlightSquare(
             scene
         ) as BABYLON.LinesMesh;
         highlightMesh.color = new BABYLON.Color3(1, 1, 0);
+        highlightMesh.isPickable = false;
     } else {
         BABYLON.MeshBuilder.CreateLines("highlight", { points, instance: highlightMesh });
     }
@@ -95,6 +99,7 @@ export function getSquareHeight(
     gridZ: number,
     SUBDIVISIONS: number
 ): number {
+
     const positions = mesh.getVerticesData(BABYLON.VertexBuffer.PositionKind);
     if (!positions) return 0;
 
@@ -105,7 +110,7 @@ export function getSquareHeight(
         row = Math.min(Math.max(row, 0), maxIndex);
         col = Math.min(Math.max(col, 0), maxIndex);
         const idx = row * (SUBDIVISIONS + 1) + col;
-        return positions[idx * 3 + 1] ?? 0; // fallback to 0 if undefined
+        return positions[idx * 3 + 1] ?? 5; // fallback to 0 if undefined
     };
 
     // Get the 4 corner vertices of the square

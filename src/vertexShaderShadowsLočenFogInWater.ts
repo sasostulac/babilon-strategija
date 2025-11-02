@@ -1,36 +1,32 @@
-export const vertexShader = `#version 300 es
+export const vertexShader = `
 precision highp float;
 
-in vec3 position;
-in vec3 normal;
-in vec4 color;
-in vec2 uv;
-in float fogFlag;
-in float waterFlag;
+attribute vec3 position;
+attribute vec3 normal;
+attribute vec4 color;
+attribute vec2 uv;
+attribute float fogFlag;
+attribute float waterFlag;
 
 uniform mat4 world;
 uniform mat4 worldViewProjection;
 uniform mat4 lightViewProjection;
 
-out vec3 vNormal;
-out vec4 vWeights;
-out vec2 vUV;
-out vec4 vShadowCoord;
-out float vFogFlag;
-out float vWaterFlag;
-out vec3 vWorldPos; // Added for triplanar
+varying vec3 vNormal;
+varying vec4 vWeights;
+varying vec2 vUV;
+varying vec4 vShadowCoord;
+varying float vFogFlag;
+varying float vWaterFlag;
 
 void main() {
     vec4 worldPos = world * vec4(position, 1.0);
-    vWorldPos = worldPos.xyz; // Pass to fragment shader
-
     vNormal = normalize(mat3(world) * normal * -1.0);
     vWeights = color;
     vUV = uv;
     vShadowCoord = lightViewProjection * worldPos;
     vFogFlag = fogFlag;
     vWaterFlag = waterFlag;
-
     gl_Position = worldViewProjection * vec4(position, 1.0);
 }
 `;

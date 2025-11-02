@@ -1,107 +1,139 @@
-// chunkWorker.ts
 self.onmessage = (event) => {
-  const { cx, cz, SUBDIVISIONS, velikostMape, MAX_HEIGHT, heightData, colorData, fowData, VIDLJIVOST_FOW} = event.data;
+  const { type } = event.data;
 
-  const positions: number[] = [];
-  const colors: number[] = [];
-  const indices: number[] = [];
-  const weights: number[][] = []; // per-vertex texture weights
-  const uvs: number[] = [];
-  const normals: number[] = [];
+  // =========================================================
+  // === 1. FULL CHUNK BUILD (geometry + textures + fog) ===
+  // =========================================================
+  if (type === "build") {
+    const {
+      cx, cz, SUBDIVISIONS, velikostMape, MAX_HEIGHT,
+      heightData, colorData, fowData, VIDLJIVOST_FOW
+    } = event.data;
 
-  const halfSize = SUBDIVISIONS / 2;
-  const step = 1; // 1 unit per vertex (you can adjust if needed)
-  const SIRINA_TEKSTURE = 2;
-  //console.log("worker za : " + cx.toString() + " " + cz.toString());
-  // Generate positions, colors, weights, uvs, and normals
-  for (let row = 0; row <= SUBDIVISIONS; row++) {
-    for (let col = 0; col <= SUBDIVISIONS; col++) {
-      const localX = col * step - halfSize;
-      const localZ = row * step - halfSize;
+    const positions: number[] = [];
+    const colors: number[] = [];
+    const indices: number[] = [];
+    const weights: number[][] = [];
+    const uvs: number[] = [];
+    const normals: number[] = [];
+    const fogFlags: number[] = [];
+    const waterFlags: number[] = [];
 
-      // Global coordinates in heightData
-      const gx = col + cx * SUBDIVISIONS;
-      const gz = row + cz * SUBDIVISIONS;
+    const halfSize = SUBDIVISIONS / 2;
+    const step = 1;
+    const SIRINA_TEKSTURE = 2;
 
-      let hillHeight = heightData[velikostMape - 1 - gz]?.[gx] ?? 0;
-      hillHeight *= MAX_HEIGHT;
-      positions.push(localX, hillHeight, localZ);
+    for (let row = 0; row <= SUBDIVISIONS; row++) {
+      for (let col = 0; col <= SUBDIVISIONS; col++) {
+        const localX = col * step - halfSize;
+        const localZ = row * step - halfSize;
 
-      // Color
-      const pixel = colorData[velikostMape - 1 - gz]?.[gx] ?? 0xffffff;
-      const r = ((pixel >> 16) & 0xff) / 255;
-      const g = ((pixel >> 8) & 0xff) / 255;
-      const b = (pixel & 0xff) / 255;
-      colors.push(r, g, b, 1);
-      //console.log(fowData[0][0].toString());
-      let vsebnostTeksture =  (fowData[velikostMape - 1 - gz]?.[gx]) ? 1 : VIDLJIVOST_FOW;
-      //console.log("vs: " + vsebnostTeksture.toString());
-      // Texture weights
-      const w = [0, 0, 0, 0, 0];
-      if (pixel === 65407) w[0] = vsebnostTeksture;
-      else if (pixel === 3329330) w[1] = vsebnostTeksture;
-      else if (pixel === 16772045 || pixel === 16768685) w[2] = vsebnostTeksture;
-      else if (pixel === 255) w[4] = vsebnostTeksture;
-      w[4] = 1 - vsebnostTeksture;
+        const gx = col + cx * SUBDIVISIONS;
+        const gz = row + cz * SUBDIVISIONS;
 
-      weights.push(w);
+        let hillHeight = heightData[velikostMape - 1 - gz]?.[gx] ?? 0;
+        hillHeight *= MAX_HEIGHT;
+        positions.push(localX, hillHeight, localZ);
 
-      // UVs (normalized)
-      uvs.push(col/SIRINA_TEKSTURE, row/SIRINA_TEKSTURE);
+        // --- Fog flag: 1 = visible, 0 = fog ---
+        const fogFlag = (fowData[velikostMape - 1 - gz]?.[gx]) ? 1.0 : 0.0;
+        fogFlags.push(fogFlag);
 
-      // --- Compute normals using neighboring heights ---
-      const hL = heightData[velikostMape - 1 - gz]?.[gx - 1] ?? hillHeight / MAX_HEIGHT;
-      const hR = heightData[velikostMape - 1 - gz]?.[gx + 1] ?? hillHeight / MAX_HEIGHT;
-      const hD = heightData[velikostMape - 1 - (gz - 1)]?.[gx] ?? hillHeight / MAX_HEIGHT;
-      const hU = heightData[velikostMape - 1 - (gz + 1)]?.[gx] ?? hillHeight / MAX_HEIGHT;
+        // 0 = water, >0 = land
+        const waterFlag = (hillHeight == 0.0) ? 1.0 : 0.0;
+        //console.log("h: " + hillHeight + " w: " + waterFlag)
+        waterFlags.push(waterFlag);
 
-      const dx = (hR - hL) * MAX_HEIGHT;
-      const dz = (hU - hD) * MAX_HEIGHT;
+        // --- Vertex color ---
+        const pixel = colorData[velikostMape - 1 - gz]?.[gx] ?? 0xffffff;
+        const r = ((pixel >> 16) & 0xff) / 255;
+        const g = ((pixel >> 8) & 0xff) / 255;
+        const b = (pixel & 0xff) / 255;
+        colors.push(r, g, b, 1);
 
-      // Approximate normal
-      let nx = -dx;
-      let ny = 2; // vertical scale
-      let nz = -dz;
-      const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-      nx /= len;
-      ny /= len;
-      nz /= len;
-      normals.push(nx, ny, nz);
+        // --- Texture weights ---
+        const vsebnostTeksture = 1.0;
+        const w = [0, 0, 0, 0, 0];
+        if (pixel === 65407) w[0] = vsebnostTeksture;
+        else if (pixel === 3329330) w[1] = vsebnostTeksture;
+        else if (pixel === 16772045 || pixel === 16768685) w[2] = vsebnostTeksture;
+        w[4] = vsebnostTeksture;
+
+        weights.push(w);
+
+        // --- UVs ---
+        uvs.push(col / SIRINA_TEKSTURE, row / SIRINA_TEKSTURE);
+
+        // --- Normals ---
+        const hL = heightData[velikostMape - 1 - gz]?.[gx - 1] ?? hillHeight / MAX_HEIGHT;
+        const hR = heightData[velikostMape - 1 - gz]?.[gx + 1] ?? hillHeight / MAX_HEIGHT;
+        const hD = heightData[velikostMape - 1 - (gz - 1)]?.[gx] ?? hillHeight / MAX_HEIGHT;
+        const hU = heightData[velikostMape - 1 - (gz + 1)]?.[gx] ?? hillHeight / MAX_HEIGHT;
+
+        const dx = (hR - hL) * MAX_HEIGHT;
+        const dz = (hU - hD) * MAX_HEIGHT;
+
+        let nx = -dx;
+        let ny = 2.0;
+        let nz = -dz;
+        const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+        nx /= len;
+        ny /= len;
+        nz /= len;
+        normals.push(nx, ny, nz);
+      }
     }
+
+    // --- Build indices with adaptive diagonals ---
+    for (let row = 0; row < SUBDIVISIONS; row++) {
+      for (let col = 0; col < SUBDIVISIONS; col++) {
+        const i = row * (SUBDIVISIONS + 1) + col;
+
+        const gx = col + cx * SUBDIVISIONS;
+        const gz = row + cz * SUBDIVISIONS;
+
+        const hA = heightData[velikostMape - 1 - gz]?.[gx] ?? 0;
+        const hB = heightData[velikostMape - 1 - gz]?.[gx + 1] ?? 0;
+        const hC = heightData[velikostMape - 1 - (gz + 1)]?.[gx] ?? 0;
+        const hD = heightData[velikostMape - 1 - (gz + 1)]?.[gx + 1] ?? 0;
+
+        const diffAD = Math.abs(hA - hD);
+        const diffBC = Math.abs(hB - hC);
+
+        if (diffAD > diffBC) {
+          indices.push(i, i + 1, i + SUBDIVISIONS + 1);
+          indices.push(i + 1, i + SUBDIVISIONS + 2, i + SUBDIVISIONS + 1);
+        } else {
+          indices.push(i, i + 1, i + SUBDIVISIONS + 2);
+          indices.push(i, i + SUBDIVISIONS + 2, i + SUBDIVISIONS + 1);
+        }
+      }
+    }
+
+    // --- Return full chunk data ---
+    self.postMessage({
+      type: "buildDone",
+      cx, cz, positions, colors, indices, weights, uvs, normals, fogFlags, waterFlags
+    });
   }
 
-// Build indices with adaptive diagonals
-for (let row = 0; row < SUBDIVISIONS; row++) {
-  for (let col = 0; col < SUBDIVISIONS; col++) {
-    const i = row * (SUBDIVISIONS + 1) + col;
+  // =========================================================
+  // === 2. FOG UPDATE ONLY (lightweight refresh) ============
+  // =========================================================
+  if (type === "updateFog") {
+    const { cx, cz, SUBDIVISIONS, velikostMape, fowData } = event.data;
+    const fogFlags: number[] = [];
 
-    // global coords in heightData
-    const gx = col + cx * SUBDIVISIONS;
-    const gz = row + cz * SUBDIVISIONS;
-
-    // sample heights of the four corners of this quad
-    const hA = heightData[velikostMape - 1 - gz]?.[gx] ?? 0;           // top-left
-    const hB = heightData[velikostMape - 1 - gz]?.[gx + 1] ?? 0;       // top-right
-    const hC = heightData[velikostMape - 1 - (gz + 1)]?.[gx] ?? 0;     // bottom-left
-    const hD = heightData[velikostMape - 1 - (gz + 1)]?.[gx + 1] ?? 0; // bottom-right
-
-    // decide which diagonal gives smaller height difference
-    const diffAD = Math.abs(hA - hD);
-    const diffBC = Math.abs(hB - hC);
-
-    if (diffAD > diffBC) {
-      // use diagonal A–D
-      indices.push(i, i + 1, i + SUBDIVISIONS + 1);
-      indices.push(i + 1, i + SUBDIVISIONS + 2, i + SUBDIVISIONS + 1);
-    } else {
-      // use diagonal B–C
-      indices.push(i, i + 1, i + SUBDIVISIONS + 2);
-      indices.push(i, i + SUBDIVISIONS + 2, i + SUBDIVISIONS + 1);
+    for (let row = 0; row <= SUBDIVISIONS; row++) {
+      for (let col = 0; col <= SUBDIVISIONS; col++) {
+        const gx = col + cx * SUBDIVISIONS;
+        const gz = row + cz * SUBDIVISIONS;
+        const fogFlag = (fowData[velikostMape - 1 - gz]?.[gx]) ? 1.0 : 0.0;
+        fogFlags.push(fogFlag);
+      }
     }
-  }
-}
 
-  // Send all data back to main thread
-  self.postMessage({ cx, cz, positions, colors, indices, weights, uvs, normals });
+    // Return only fog flags (fast)
+    self.postMessage({ type: "fogUpdate", cx, cz, fogFlags });
+  }
 };
-

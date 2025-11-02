@@ -1,0 +1,205 @@
+/* ===== BUILD MENU ROOT ===== */
+#build-menu {
+  position: absolute;
+  bottom: 2%;
+  left: 2%;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+  z-index: 20;
+  user-select: none;
+}
+
+/* ===== COMMON BUTTON BASE ===== */
+button,
+.building-card {
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+  color: #f0f0f0;
+  border: 1px solid rgba(0, 0, 0, 0.4);        /* darker edge for contrast */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);    /* subtle dark halo behind */
+}
+
+/* ===== BUILD BUTTON ===== */
+.build-button {
+  background: rgba(130, 130, 130, 0.35);
+  padding: 10px 24px;
+  font-size: 18px;
+  height: 48px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  position: relative;
+  overflow: hidden;
+  animation: pulseGlow 3s infinite;
+}
+
+@keyframes pulseGlow {
+  0%   { box-shadow: 0 0 8px rgba(255,255,255,0.15); }
+  50%  { box-shadow: 0 0 18px rgba(255,255,255,0.35); }
+  100% { box-shadow: 0 0 8px rgba(255,255,255,0.15); }
+}
+
+.build-button:hover {
+  background: rgba(160, 160, 160, 0.45);
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.build-button:active {
+  transform: scale(0.95);
+  filter: brightness(0.85);
+}
+
+/* Light burst */
+.build-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 80%);
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.8);
+}
+.build-button.burst::after {
+  animation: lightBurst 0.45s ease-out;
+}
+@keyframes lightBurst {
+  0%   { opacity: 0.9; transform: scale(0.9); }
+  40%  { opacity: 0.7; transform: scale(1.3); }
+  70%  { opacity: 0.4; transform: scale(1.8); }
+  100% { opacity: 0;   transform: scale(2.4); }
+}
+
+/* ===== CATEGORY BAR ===== */
+.menu-categories {
+  position: absolute;
+  bottom: 60px;
+  left: 2%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.menu-categories.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.menu-categories.hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+.menu-categories button {
+  background: rgba(110, 110, 110, 0.3);
+  height: 48px;
+  font-size: 18px;
+  padding: 10px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.menu-categories button:hover {
+  background: rgba(180, 180, 180, 0.45);
+  transform: translateY(-3px) scale(1.05);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+/* Active (pressed) category */
+.menu-categories button.active {
+  background: rgba(200, 200, 200, 0.5);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.25), 0 0 8px rgba(255,255,255,0.3);
+  transform: scale(1.02);
+}
+
+/* ===== BUILDING BAR ===== */
+.menu-buildings {
+  position: absolute;
+  bottom: 120px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.menu-buildings.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  animation: popIn 0.3s ease;
+}
+
+.menu-buildings.hidden {
+  opacity: 0;
+  transform: translateY(10px);
+  pointer-events: none;
+}
+
+/* ===== BUILDING CARDS ===== */
+.building-card {
+  background: rgba(110, 110, 110, 0.25);
+  width: 78px;
+  height: 94px;
+  padding: 4px;
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  transition: transform 0.25s ease, background 0.2s;
+}
+
+.building-card:hover {
+  background: rgba(170, 170, 170, 0.4);
+  transform: scale(1.08) translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 10px rgba(255,255,255,0.3);
+}
+
+@keyframes popIn {
+  0% { transform: translateY(10px) scale(0.95); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* ===== BUILDING IMAGES ===== */
+.building-card img {
+  width: 70px;
+  height: 70px;
+  border-radius: 6px;
+  object-fit: contain;         /* ensures full image visible */
+  background: transparent;     /* important for PNG alpha */
+  opacity: 1;                  /* keep full alpha fidelity */
+  mix-blend-mode: normal;      /* ensure browser respects alpha */
+  pointer-events: none;
+}
+
+/* ===== BUILDING TEXT ===== */
+.building-card span {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffffff;
+  margin-top: 2px;
+  line-height: 1.1;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ===== UTILITY ===== */
+.hidden {
+  display: none !important;
+}
